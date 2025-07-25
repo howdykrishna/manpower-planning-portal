@@ -52,14 +52,19 @@ def ratio_trend():
     df = pd.DataFrame(data)
     try:
         df['Ratio'] = df['Employees'] / df['Output']
-        if df['Ratio'].isnull().any():
+        if df['Ratio'].isnull().any() or (df['Output'] == 0).any():
             raise ValueError("Division by zero or missing data detected.")
         avg_ratio = df['Ratio'].mean()
-        forecast_output = st.number_input("Forecasted Output (Revenue/Units)", value=1000.0)
+        forecast_output = st.number_input("Forecasted Output for Next Year (Revenue/Units)", value=1000.0)
         forecast_employees = forecast_output * avg_ratio
-        st.success(f"🔮 Estimated Employees Required: {int(forecast_employees)}")
+        forecast_year = str(int(df['Year'].iloc[-1]) + 1)
+        forecast_df = pd.DataFrame([{"Year": forecast_year, "Forecasted Output": forecast_output, "Estimated Employees": int(forecast_employees)}])
+
+        st.success(f"🔮 Estimated Employees Required for {forecast_year}: {int(forecast_employees)}")
         st.dataframe(df)
-        if st.download_button("📥 Download Forecast as Excel", data=to_excel(df), file_name="ratio_trend_forecast.xlsx"):
+        st.dataframe(forecast_df)
+
+        if st.download_button("📥 Download Forecast as Excel", data=to_excel(forecast_df), file_name="ratio_trend_forecast.xlsx"):
             st.toast("Downloaded successfully!")
     except Exception as e:
         st.error(f"❌ Error calculating ratio trend: {e}")
