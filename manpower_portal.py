@@ -27,7 +27,6 @@ def to_excel(df):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df.to_excel(writer, index=False, sheet_name='Sheet1')
-        writer.save()
     processed_data = output.getvalue()
     return processed_data
 
@@ -37,7 +36,7 @@ def ratio_trend():
     st.markdown("""Used for **small to medium businesses** with consistent growth metrics. 
     Industries: **Retail, Manufacturing, Services**.
     """)
-    
+
     rows = st.number_input("Number of Historical Years", 2, 10, 3)
     data = []
     for i in range(rows):
@@ -49,14 +48,16 @@ def ratio_trend():
         with col3:
             output = st.number_input(f"Output (e.g., Revenue) in {year}", key=f"out_{i}")
         data.append({'Year': year, 'Employees': employees, 'Output': output})
-    
+
     df = pd.DataFrame(data)
     try:
         df['Ratio'] = df['Employees'] / df['Output']
+        if df['Ratio'].isnull().any():
+            raise ValueError("Division by zero or missing data detected.")
         avg_ratio = df['Ratio'].mean()
         forecast_output = st.number_input("Forecasted Output (Revenue/Units)", value=1000.0)
         forecast_employees = forecast_output * avg_ratio
-        st.success(f"🔮 Estimated Employees Required: {round(forecast_employees)}")
+        st.success(f"🔮 Estimated Employees Required: {int(forecast_employees)}")
         st.dataframe(df)
         if st.download_button("📥 Download Forecast as Excel", data=to_excel(df), file_name="ratio_trend_forecast.xlsx"):
             st.toast("Downloaded successfully!")
@@ -73,7 +74,7 @@ def markov_model():
     state_names = st.text_area("Enter Role/Level States (comma-separated)", "Junior,Mid,Senior,Exit")
     states = [x.strip() for x in state_names.split(",")]
     n = len(states)
-    
+
     current_headcount = []
     st.markdown("### Current Headcount by State")
     for state in states:
