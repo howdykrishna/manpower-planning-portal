@@ -51,16 +51,17 @@ def ratio_trend():
         data.append({'Year': year, 'Employees': employees, 'Output': output})
     
     df = pd.DataFrame(data)
-    df['Ratio'] = df['Employees'] / df['Output']
-    avg_ratio = df['Ratio'].mean()
-    forecast_output = st.number_input("Forecasted Output (Revenue/Units)", value=1000.0)
-    forecast_employees = forecast_output * avg_ratio
-
-    st.success(f"🔮 Estimated Employees Required: {round(forecast_employees)}")
-    st.dataframe(df)
-    
-    if st.download_button("📥 Download Forecast as Excel", data=to_excel(df), file_name="ratio_trend_forecast.xlsx"):
-        st.toast("Downloaded successfully!")
+    try:
+        df['Ratio'] = df['Employees'] / df['Output']
+        avg_ratio = df['Ratio'].mean()
+        forecast_output = st.number_input("Forecasted Output (Revenue/Units)", value=1000.0)
+        forecast_employees = forecast_output * avg_ratio
+        st.success(f"🔮 Estimated Employees Required: {round(forecast_employees)}")
+        st.dataframe(df)
+        if st.download_button("📥 Download Forecast as Excel", data=to_excel(df), file_name="ratio_trend_forecast.xlsx"):
+            st.toast("Downloaded successfully!")
+    except Exception as e:
+        st.error(f"❌ Error calculating ratio trend: {e}")
 
 # --- MARKOV ANALYSIS ---
 def markov_model():
@@ -81,26 +82,29 @@ def markov_model():
     st.markdown("### Transition Probability Matrix")
     st.markdown("Each row should sum to 1.0 (100%).")
     matrix = []
-    for i in range(n):
-        row = st.text_input(f"Transition probabilities from {states[i]} (comma-separated)",
-                            value=','.join([str(round(1.0/n, 2))]*n), key=f"row_{i}")
-        matrix.append([float(x.strip()) for x in row.split(",")])
+    try:
+        for i in range(n):
+            row = st.text_input(f"Transition probabilities from {states[i]} (comma-separated)",
+                                value=','.join([str(round(1.0/n, 2))]*n), key=f"row_{i}")
+            matrix.append([float(x.strip()) for x in row.split(",")])
 
-    years = st.slider("Number of Years to Forecast", 1, 10, 3)
-    current = np.array(current_headcount)
-    mat = np.array(matrix)
-    history = [current]
-    for _ in range(years):
-        current = np.dot(current, mat)
-        history.append(current)
+        years = st.slider("Number of Years to Forecast", 1, 10, 3)
+        current = np.array(current_headcount)
+        mat = np.array(matrix)
+        history = [current]
+        for _ in range(years):
+            current = np.dot(current, mat)
+            history.append(current)
 
-    forecast_df = pd.DataFrame(history, columns=states)
-    forecast_df.insert(0, "Year", [f"Year {i}" for i in range(years+1)])
-    st.dataframe(forecast_df)
-    st.line_chart(forecast_df.set_index("Year"))
+        forecast_df = pd.DataFrame(history, columns=states)
+        forecast_df.insert(0, "Year", [f"Year {i}" for i in range(years+1)])
+        st.dataframe(forecast_df)
+        st.line_chart(forecast_df.set_index("Year"))
 
-    if st.download_button("📥 Download Markov Forecast", data=to_excel(forecast_df), file_name="markov_forecast.xlsx"):
-        st.toast("Downloaded successfully!")
+        if st.download_button("📥 Download Markov Forecast", data=to_excel(forecast_df), file_name="markov_forecast.xlsx"):
+            st.toast("Downloaded successfully!")
+    except Exception as e:
+        st.error(f"❌ Error in Markov calculation: {e}")
 
 # --- MONTE CARLO SIMULATION ---
 def monte_carlo():
@@ -116,25 +120,28 @@ def monte_carlo():
     hiring = st.slider("Annual Hiring Rate (%)", 0, 200, 50) / 100
     promotion = st.slider("Annual Promotion Rate (%)", 0, 100, 5) / 100
 
-    results = []
-    for _ in range(sims):
-        count = init
-        yearly = []
-        for _ in range(years):
-            exits = np.random.binomial(count, attrition)
-            joins = np.random.poisson(hiring * count)
-            moves = np.random.binomial(count, promotion)
-            count = max(0, count - exits + joins)
-            yearly.append(count)
-        results.append(yearly)
+    try:
+        results = []
+        for _ in range(sims):
+            count = init
+            yearly = []
+            for _ in range(years):
+                exits = np.random.binomial(count, attrition)
+                joins = np.random.poisson(hiring * count)
+                moves = np.random.binomial(count, promotion)
+                count = max(0, count - exits + joins)
+                yearly.append(count)
+            results.append(yearly)
 
-    avg_counts = np.mean(results, axis=0)
-    monte_df = pd.DataFrame({"Year": [f"Year {i+1}" for i in range(years)], "Average Headcount": avg_counts})
-    st.dataframe(monte_df)
-    st.line_chart(monte_df.set_index("Year"))
+        avg_counts = np.mean(results, axis=0)
+        monte_df = pd.DataFrame({"Year": [f"Year {i+1}" for i in range(years)], "Average Headcount": avg_counts})
+        st.dataframe(monte_df)
+        st.line_chart(monte_df.set_index("Year"))
 
-    if st.download_button("📥 Download Monte Carlo Forecast", data=to_excel(monte_df), file_name="montecarlo_forecast.xlsx"):
-        st.toast("Downloaded successfully!")
+        if st.download_button("📥 Download Monte Carlo Forecast", data=to_excel(monte_df), file_name="montecarlo_forecast.xlsx"):
+            st.toast("Downloaded successfully!")
+    except Exception as e:
+        st.error(f"❌ Error running simulation: {e}")
 
 # --- Dispatcher ---
 if model == "Ratio Trend Analysis":
