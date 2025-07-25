@@ -27,6 +27,7 @@ def to_excel(df):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df.to_excel(writer, index=False, sheet_name='Sheet1')
+        writer.close()
     processed_data = output.getvalue()
     return processed_data
 
@@ -52,15 +53,15 @@ def ratio_trend():
     df = pd.DataFrame(data)
     try:
         df['Ratio'] = df['Employees'] / df['Output']
-        if df['Ratio'].isnull().any() or (df['Output'] == 0).any():
-            raise ValueError("Division by zero or missing data detected.")
+        df.replace([np.inf, -np.inf], np.nan, inplace=True)
+        df.dropna(inplace=True)
         avg_ratio = df['Ratio'].mean()
         forecast_output = st.number_input("Forecasted Output for Next Year (Revenue/Units)", value=1000.0)
-        forecast_employees = forecast_output * avg_ratio
         forecast_year = str(int(df['Year'].iloc[-1]) + 1)
-        forecast_df = pd.DataFrame([{"Year": forecast_year, "Forecasted Output": forecast_output, "Estimated Employees": int(forecast_employees)}])
+        forecast_employees = forecast_output * avg_ratio
+        forecast_df = pd.DataFrame([{"Year": forecast_year, "Forecasted Output": forecast_output, "Estimated Employees": int(round(forecast_employees))}])
 
-        st.success(f"🔮 Estimated Employees Required for {forecast_year}: {int(forecast_employees)}")
+        st.success(f"🔮 Estimated Employees Required for {forecast_year}: {int(round(forecast_employees))}")
         st.dataframe(df)
         st.dataframe(forecast_df)
 
